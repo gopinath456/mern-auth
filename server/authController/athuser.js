@@ -26,12 +26,13 @@ export const register=async (req,res)=>{
             siteOnly:process.env.NODE_ENV=='production'?'strict':'none',
             maxAge:2*60*60*1000
         })
-        return res.json({success:true})
+        return res.json({success:true});
     } catch (error) {
         res.json({success:false, message:error.message});
     }   
 }
 
+// Login Controller: Verifies user credentials and handles login.
 export const login=async (req,res)=>{
     const {email,password}=req.body;
     if(!email||!password)
@@ -57,3 +58,11 @@ export const login=async (req,res)=>{
 
     return res.json({success:true});
 }
+
+// Logout Controller: Clears user session and logs out the user.
+const logout=async (req,res)=>{
+    res.clearCookie('token');
+    res.json({success:true,message:'logged out'});
+}
+
+
