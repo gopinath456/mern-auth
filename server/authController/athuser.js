@@ -60,7 +60,7 @@ export const login=async (req,res)=>{
 }
 
 // Logout Controller: Clears user session and logs out the user.
-const logout=async (req,res)=>{
+export const logout=async (req,res)=>{
     res.clearCookie('token');
     res.json({success:true,message:'logged out'});
 }
