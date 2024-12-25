@@ -1,7 +1,7 @@
 import { UserModel } from "../models/userModel.js";
 import 'dotenv/config'
 import bcrypt from "bcryptjs"
-import jwt from 'jsonwebtoken'
+import jwt, { verify } from 'jsonwebtoken'
 import { transporter } from "../configure/nodemailer.js";
 import { text } from "express";
 
@@ -77,4 +77,28 @@ export const logout=async (req,res)=>{
     res.json({success:true,message:'logged out'});
 }
 
+// sending otp through email
+export const verifyOtpSent=async (req,res)=>{
+    const {token}=req.cookie
+    const {id}=jwt.verify(token,process.env.KEY);
+    try {
+        const user= await UserModel.find({_id:id});
+        if(user.isAccountVerified)
+        res.json({success:false,message:'Account already verified'});
+        const otp=String(Math.floor(100000 + Math.random() * 900000));
+        user.verifyOtp=otp;
+        user.verifyOtpEpireAt=Date.now+24*60*60*1000
+        user.save();
+        const verify={
+            from:'gopinath',
+            to:email,
+            subject:'Account Verifycation OTP',
+            text:`Your OTP is ${otp}, Please Verify Your account with this`
+        }
+        await transporter.sendMail(verify);
+        res.json({succes:true, message:"the otp sent successfully"})
+    } catch (error) {
+        res.json({success:false,message:error.message})
+    }
+}
 
