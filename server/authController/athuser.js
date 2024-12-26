@@ -1,7 +1,7 @@
 import { UserModel } from "../models/userModel.js";
 import 'dotenv/config'
 import bcrypt from "bcryptjs"
-import jwt, { verify } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 import { transporter } from "../configure/nodemailer.js";
 import { text } from "express";
 
@@ -77,28 +77,54 @@ export const logout=async (req,res)=>{
     res.json({success:true,message:'logged out'});
 }
 
-// sending otp through email
+// Sending an OTP to the email address.
 export const verifyOtpSent=async (req,res)=>{
-    const {token}=req.cookie
-    const {id}=jwt.verify(token,process.env.KEY);
     try {
-        const user= await UserModel.find({_id:id});
+        const {email}=req.body;
+        console.log(email);
+        const {token}=req.cookies;
+        const {id}=jwt.verify(token,process.env.KEY);
+        const user= await UserModel.findOne({_id:id});
         if(user.isAccountVerified)
         res.json({success:false,message:'Account already verified'});
         const otp=String(Math.floor(100000 + Math.random() * 900000));
         user.verifyOtp=otp;
-        user.verifyOtpEpireAt=Date.now+24*60*60*1000
-        user.save();
+        user.verifyOtpEpireAt=Date.now()+24*60*60*1000;
+        await user.save();
         const verify={
             from:'gopinath',
             to:email,
             subject:'Account Verifycation OTP',
-            text:`Your OTP is ${otp}, Please Verify Your account with this`
+            text:`Your OTP is ${otp}, Please Verify Your account with this otp`
         }
         await transporter.sendMail(verify);
         res.json({succes:true, message:"the otp sent successfully"})
     } catch (error) {
         res.json({success:false,message:error.message})
     }
+}
+
+//Checking if the entered email OTP matches the expected value
+export const verifyOtp= async (req,res)=>{
+try{
+   const {token}=req.cookies;
+   const {otp}=req.body;
+   const {id}=jwt.verify(token,process.env.KEY);
+   if(!otp)
+   res.json({succes:false, message:"missing details"});
+   const user =await UserModel.findById(id);
+   if(user.verifyOtp==''||user.verifyOtp !==otp)
+    res.json({succes:false,message:'the opt is invalid'})
+   if(user.verifyOtpEpireAt<Date.now())
+   res.json({succes:false,message:'opt is expired'});
+   user.isAccountVerified=true;
+   user.verifyOtp='';
+   user.verifyOtpEpireAt=0;
+   await user.save();
+   res.json({succes:true, message:'Email verified succesfylly'});
+}
+catch(error){
+    res.json({succes:false,message:error.message});
+}
 }
 
