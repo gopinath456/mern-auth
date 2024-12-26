@@ -9,7 +9,7 @@ import { text } from "express";
 export const register=async (req,res)=>{
     const {name,email,password}=req.body;
     if(!name||!email||!password)
-        res.json({sucesse:false,message:'Missing details'});
+        return res.json({sucesse:false,message:'Missing details'});
     try {
         const existingUser= await UserModel.findOne({email});
         if(existingUser)
@@ -40,7 +40,7 @@ export const register=async (req,res)=>{
         await transporter.sendMail(welcome)
         return res.json({success:true});
     } catch (error) {
-        res.json({success:false, message:error.message});
+        return res.json({success:false, message:error.message});
     }   
 }
 
@@ -48,15 +48,15 @@ export const register=async (req,res)=>{
 export const login=async (req,res)=>{
     const {email,password}=req.body;
     if(!email||!password)
-        res.json({success:false , message:'missing details'});
+        return res.json({success:false , message:'missing details'});
     
     try {
         const compare= await UserModel.findOne({email});
         if(!compare)
-            res.json({success:false , message:"invalid user"});  
+            return res.json({success:false , message:"invalid user"});  
         const matching = await bcrypt.compare(password,compare.password);
         if(!matching)
-            res.json({success:false , message:'invalid password'});
+            return res.json({success:false , message:'invalid password'});
         const token=jwt.sign({id:compare._id},process.env.KEY,{expiresIn:'2h'})
         res.cookie('token',token,{
             httpOnly:true,
@@ -64,11 +64,10 @@ export const login=async (req,res)=>{
             siteOnly:process.env.NODE_ENV=='production'?'strict':"none",
             maxAge:2*60*60*1000
         })
+        return res.json({success:true});
     } catch (error) {
-        res.json({success:false,message:error.message})
-    }
-
-    return res.json({success:true});
+        return res.json({success:false,message:error.message})
+    }   
 }
 
 // Logout Controller: Clears user session and logs out the user.
@@ -80,13 +79,14 @@ export const logout=async (req,res)=>{
 // Sending an OTP to the email address.
 export const verifyOtpSent=async (req,res)=>{
     try {
-        const {email}=req.body;
+        const {email,id}=req.body;
         console.log(email);
-        const {token}=req.cookies;
-        const {id}=jwt.verify(token,process.env.KEY);
+         // creting middelware for authorizeUser
+        // const {token}=req.cookies;
+        // const {id}=jwt.verify(token,process.env.KEY);
         const user= await UserModel.findOne({_id:id});
         if(user.isAccountVerified)
-        res.json({success:false,message:'Account already verified'});
+        return res.json({success:false,message:'Account already verified'});
         const otp=String(Math.floor(100000 + Math.random() * 900000));
         user.verifyOtp=otp;
         user.verifyOtpEpireAt=Date.now()+24*60*60*1000;
@@ -98,33 +98,34 @@ export const verifyOtpSent=async (req,res)=>{
             text:`Your OTP is ${otp}, Please Verify Your account with this otp`
         }
         await transporter.sendMail(verify);
-        res.json({succes:true, message:"the otp sent successfully"})
+        return res.json({succes:true, message:"the otp sent successfully"})
     } catch (error) {
-        res.json({success:false,message:error.message})
+        return res.json({success:false,message:error.message})
     }
 }
 
 //Checking if the entered email OTP matches the expected value
 export const verifyOtp= async (req,res)=>{
 try{
-   const {token}=req.cookies;
-   const {otp}=req.body;
-   const {id}=jwt.verify(token,process.env.KEY);
+ // creting middelware for authorizeUser
+//  const {token}=req.cookies;
+//  const {id}=jwt.verify(token,process.env.KEY);
+   const {otp,id}=req.body;
    if(!otp)
-   res.json({succes:false, message:"missing details"});
+   return res.json({succes:false, message:"missing details"});
    const user =await UserModel.findById(id);
    if(user.verifyOtp==''||user.verifyOtp !==otp)
-    res.json({succes:false,message:'the opt is invalid'})
+    return res.json({succes:false,message:'the opt is invalid'})
    if(user.verifyOtpEpireAt<Date.now())
    res.json({succes:false,message:'opt is expired'});
    user.isAccountVerified=true;
    user.verifyOtp='';
    user.verifyOtpEpireAt=0;
    await user.save();
-   res.json({succes:true, message:'Email verified succesfylly'});
+   return res.json({succes:true, message:'Email verified succesfylly'});
 }
 catch(error){
-    res.json({succes:false,message:error.message});
+    return res.json({succes:false,message:error.message});
 }
 }
 
