@@ -24,7 +24,7 @@ export const register=async (req,res)=>{
         res.cookie('token',token,{
             httpOnly:true,
             secure:process.env.NODE_ENV=='production',
-            siteOnly:process.env.NODE_ENV=='production'?'strict':'none',
+            sameSite:process.env.NODE_ENV=='production'?'strict':'none',
             maxAge:2*60*60*1000
         })
 
@@ -146,13 +146,13 @@ export const resetOtp = async (req,res) =>{
     try {
 
         if(!email)
-            return res.json({succes:false,message:"details missing"})
+            return res.json({succes:false,message:"Email is required"})
         const user=await UserModel.findOne({email})
         if(!user)
             return res.json({succes:false,message:"Email is invalid. Please sign up or use a valid email to reset your password"});
         const otp=String(Math.floor(100000+Math.random()*900000));
         user.resetOtp=otp;
-        user.resetOtpEspireAt=Date.now+24*60*60*1000;
+        user.resetOtpEspireAt=Date.now()+24*60*60*1000;
         await user.save();
         const resetOtp={
             from:'Gopinth R',
@@ -161,16 +161,48 @@ export const resetOtp = async (req,res) =>{
             text:`Your otp is ${otp},Please use this to reset your password`
         }
         transporter.sendMail(resetOtp);
-        const token=jwt.sign({id:user._id},process.env.KEY,{expiresIn:"4h"});
-        res.cookie('token',token,{
-            httpOnly:true,
-            secure:process.env.NODE_ENV==="production",
-
-            maxAge:4*60*60*1000
-        });
-        return res.json({succes:true,message:"The verification otp sent successfully"});
+        // const token=jwt.sign({id:user._id},process.env.KEY,{expiresIn:"4h"});
+        // res.cookie('token',token,{
+        //     httpOnly:true,
+        //     secure:process.env.NODE_ENV==="production",
+        //     sameSite:process.env.NODE_ENV=='production'?'strict':'none',
+        //     maxAge:4*60*60*1000
+        // });
+        return res.json({succes:true,message:"The reset password otp sent successfully"});
     } catch (error) {
         return res.json({succes:false,message:error.message});
     }  
 }
+
+// reset password
+export const resetPass= async (req,res)=>{
+
+    const {email,otp,resetpassword}=req.body;
+    if(!email,!otp,!resetpassword)
+        return res.json({message:false,message:'Email,Opt and new password required'});
+
+    try {
+        const user=await UserModel.findOne({email});
+        // console.log(user)
+        if(!user)
+           return  res.json({succes:false,message:'user not found'});
+
+        if(user.resetOtp===""||user.resetOtp !==otp)
+           return  res.json({succes:false,message:'Invalid otp'});
+
+        if(user.resetOtpEspireAt<Date.now())
+           return  res.json({succes:false,message:'Otp is expired '});
+        const hash=await bcrypt.hash(resetpassword,10);
+        user.password=hash;
+        user.resetOtp='';
+        user.resetOtpEspireAt=0;
+        await user.save();
+        return res.json({succes:true, message:"Password has been reset successfully"});
+    } catch (error) {
+        res.json({succes:false,message:error.message})
+    }
+  
+}
+
+
 
