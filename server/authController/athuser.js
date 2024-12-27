@@ -204,5 +204,33 @@ export const resetPass= async (req,res)=>{
   
 }
 
+//controller for showing user their details
+export const isverified=async (req,res)=>{
+
+    const {id}=req.body;
+    if(!id)
+        return res.json({succes:false,message:"not authorised, please login "});
+
+    try {
+        const user=await UserModel.findById(id);
+       if(!user)
+        return res.json({succes:false,message:"invalid user"})
+        
+       return res.json({
+        succes:true,
+        user:{
+            name:user.name,
+            isAccountVerified:user.isAccountVerified
+        }
+    })
+
+    } catch (error) {
+        return res.json({succes:false,message:error.message});
+    }
+
+   
+}
+
+
 
 
