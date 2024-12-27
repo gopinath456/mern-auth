@@ -3,7 +3,6 @@ import 'dotenv/config'
 import bcrypt from "bcryptjs"
 import jwt from 'jsonwebtoken'
 import { transporter } from "../configure/nodemailer.js";
-import { text } from "express";
 
 // Add user data to the database after validating the input
 export const register=async (req,res)=>{
@@ -127,5 +126,51 @@ try{
 catch(error){
     return res.json({succes:false,message:error.message});
 }
+}
+
+// check if user is authenticated
+export const is_auth=(req,res)=>{
+  try {
+
+    res.json({message:true});
+    
+  } catch (error) {
+    res.json({succes:false,message:error.message})
+  }
+}
+
+// Sending an reset OTP to the email address.
+export const resetOtp = async (req,res) =>{
+    const {email}=req.body;
+    console.log(email)
+    try {
+
+        if(!email)
+            return res.json({succes:false,message:"details missing"})
+        const user=await UserModel.findOne({email})
+        if(!user)
+            return res.json({succes:false,message:"Email is invalid. Please sign up or use a valid email to reset your password"});
+        const otp=String(Math.floor(100000+Math.random()*900000));
+        user.resetOtp=otp;
+        user.resetOtpEspireAt=Date.now+24*60*60*1000;
+        await user.save();
+        const resetOtp={
+            from:'Gopinth R',
+            to:email,
+            subject:'The reset otp',
+            text:`Your otp is ${otp},Please use this to reset your password`
+        }
+        transporter.sendMail(resetOtp);
+        const token=jwt.sign({id:user._id},process.env.KEY,{expiresIn:"4h"});
+        res.cookie('token',token,{
+            httpOnly:true,
+            secure:process.env.NODE_ENV==="production",
+
+            maxAge:4*60*60*1000
+        });
+        return res.json({succes:true,message:"The verification otp sent successfully"});
+    } catch (error) {
+        return res.json({succes:false,message:error.message});
+    }  
 }
 
