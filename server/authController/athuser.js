@@ -12,7 +12,7 @@ export const register=async (req,res)=>{
     try {
         const existingUser= await UserModel.findOne({email});
         if(existingUser)
-            res.json({success:false, message:"user already existed"})
+            return res.json({success:false, message:"user already existed"})
         const hashpassword= await bcrypt.hash(password,10);
         const s1=new UserModel({
             name:name,
@@ -131,11 +131,10 @@ catch(error){
 // check if user is authenticated
 export const is_auth=(req,res)=>{
   try {
-
-    res.json({message:true});
+    return res.json({success:true});
     
   } catch (error) {
-    res.json({succes:false,message:error.message})
+    return res.json({success:false,message:error.message})
   }
 }
 
@@ -212,12 +211,12 @@ export const isverified=async (req,res)=>{
         return res.json({succes:false,message:"not authorised, please login "});
 
     try {
-        const user=await UserModel.findById(id);
+        const user=await  UserModel.findOne({_id:id});
        if(!user)
         return res.json({succes:false,message:"invalid user"})
         
        return res.json({
-        succes:true,
+        success:true,
         user:{
             name:user.name,
             isAccountVerified:user.isAccountVerified
@@ -225,10 +224,23 @@ export const isverified=async (req,res)=>{
     })
 
     } catch (error) {
-        return res.json({succes:false,message:error.message});
+        return res.json({success:false,message:error.message});
     }
 
    
+}
+
+export const userveri= async (req,res)=>{
+    try {
+        const {id}=req.body;
+        const user= await UserModel.findOne({_id:id})
+        console.log(user)
+        return res.send('success');
+        
+    } catch (error) {
+        console.log(error);
+    }
+  
 }
 
 

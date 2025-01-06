@@ -8,7 +8,9 @@ const app=express();
 const port=process.env.PORT||4000;
 connectDB();
 app.use(express.json());
-app.use(cors({Credential:true}));
+app.use(cors({
+origin:'http://localhost:5173',
+credentials:true}));
 app.use(cookieParser());
 app.use('/api/auth',routes);
 app.get('/',(req,res)=>res.send('server is running'))
