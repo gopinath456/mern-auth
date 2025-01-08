@@ -8,6 +8,7 @@ const connectDB=async ()=> {
         console.log('connected successfully');
         }
     catch(error){
+           console.log(error.message)
            console.log('the connection unsuccesfull');
         }
 }

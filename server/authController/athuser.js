@@ -78,8 +78,7 @@ export const logout=async (req,res)=>{
 // Sending an OTP to the email address.
 export const verifyOtpSent=async (req,res)=>{
     try {
-        const {email,id}=req.body;
-        console.log(email);
+        const {id}=req.body;
          // creting middelware for authorizeUser
         // const {token}=req.cookies;
         // const {id}=jwt.verify(token,process.env.KEY);
@@ -92,12 +91,12 @@ export const verifyOtpSent=async (req,res)=>{
         await user.save();
         const verify={
             from:'gopinath',
-            to:email,
+            to:user.email,
             subject:'Account Verifycation OTP',
             text:`Your OTP is ${otp}, Please Verify Your account with this otp`
         }
         await transporter.sendMail(verify);
-        return res.json({succes:true, message:"the otp sent successfully"})
+        return res.json({success:true, message:"the otp sent successfully"})
     } catch (error) {
         return res.json({success:false,message:error.message})
     }
@@ -121,7 +120,7 @@ try{
    user.verifyOtp='';
    user.verifyOtpEpireAt=0;
    await user.save();
-   return res.json({succes:true, message:'Email verified succesfylly'});
+   return res.json({success:true, message:'Email verified successfully'});
 }
 catch(error){
     return res.json({succes:false,message:error.message});
