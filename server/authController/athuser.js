@@ -3,6 +3,7 @@ import 'dotenv/config'
 import bcrypt from "bcryptjs"
 import jwt from 'jsonwebtoken'
 import { transporter } from "../configure/nodemailer.js";
+import {EMAIL_VERIFY_TEMPLATE,PASSWORD_RESET_TEMPLATE} from '../emailTemplates/emailTemplates.js'
 
 // Add user data to the database after validating the input
 export const register=async (req,res)=>{
@@ -93,7 +94,8 @@ export const verifyOtpSent=async (req,res)=>{
             from:'gopinath',
             to:user.email,
             subject:'Account Verifycation OTP',
-            text:`Your OTP is ${otp}, Please Verify Your account with this otp`
+            // text:`Your OTP is ${otp}, Please Verify Your account with this otp`
+            html:EMAIL_VERIFY_TEMPLATE.replace('{{otp}}',otp).replace('{{email}}',user.email)
         }
         await transporter.sendMail(verify);
         return res.json({success:true, message:"the otp sent successfully"})
@@ -140,7 +142,7 @@ export const is_auth=(req,res)=>{
 // Sending an reset OTP to the email address.
 export const resetOtp = async (req,res) =>{
     const {email}=req.body;
-    console.log(email)
+    console.log(email);
     try {
 
         if(!email)
@@ -156,7 +158,8 @@ export const resetOtp = async (req,res) =>{
             from:'Gopinth R',
             to:email,
             subject:'The reset otp',
-            text:`Your otp is ${otp},Please use this to reset your password`
+            // text:`Your otp is ${otp},Please use this to reset your password`
+            html:PASSWORD_RESET_TEMPLATE.replace('{{otp}}',otp).replace('{{email}}',email)
         }
         transporter.sendMail(resetOtp);
         // const token=jwt.sign({id:user._id},process.env.KEY,{expiresIn:"4h"});
@@ -166,7 +169,7 @@ export const resetOtp = async (req,res) =>{
         //     sameSite:process.env.NODE_ENV=='production'?'strict':'none',
         //     maxAge:4*60*60*1000
         // });
-        return res.json({succes:true,message:"The reset password otp sent successfully"});
+        return res.json({success:true,message:"The reset password otp sent successfully"});
     } catch (error) {
         return res.json({succes:false,message:error.message});
     }  
@@ -183,21 +186,21 @@ export const resetPass= async (req,res)=>{
         const user=await UserModel.findOne({email});
         // console.log(user)
         if(!user)
-           return  res.json({succes:false,message:'user not found'});
+           return  res.json({success:false,message:'user not found'});
 
         if(user.resetOtp===""||user.resetOtp !==otp)
-           return  res.json({succes:false,message:'Invalid otp'});
+           return  res.json({success:false,message:'Invalid otp'});
 
         if(user.resetOtpEspireAt<Date.now())
-           return  res.json({succes:false,message:'Otp is expired '});
+           return  res.json({success:false,message:'Otp is expired '});
         const hash=await bcrypt.hash(resetpassword,10);
         user.password=hash;
         user.resetOtp='';
         user.resetOtpEspireAt=0;
         await user.save();
-        return res.json({succes:true, message:"Password has been reset successfully"});
+        return res.json({success:true, message:"Password has been reset successfully"});
     } catch (error) {
-        res.json({succes:false,message:error.message})
+        res.json({success:false,message:error.message})
     }
   
 }
